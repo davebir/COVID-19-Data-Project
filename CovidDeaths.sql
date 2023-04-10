@@ -14,6 +14,7 @@ WHERE
 ORDER BY 1 , 2;
 
 
+
 -- Total Cases vs Total Deaths
 -- Shows likelihood of dying if you contract covid in your country
 
@@ -31,6 +32,7 @@ WHERE
 ORDER BY 1 , 2;
 
 
+
 -- Total Cases vs Population
 -- Shows what percentage of population infected with Covid
 
@@ -43,6 +45,7 @@ SELECT
 FROM
     CovidDeaths_
 ORDER BY 1 , 2;
+
 
 
 -- Countries with Highest Infection Rate compared to Population
@@ -60,6 +63,7 @@ GROUP BY Location , Population
 ORDER BY PercentPopulationInfected DESC;
 
 
+
 -- Countries with Highest Death Count per Population
 
 SELECT 
@@ -75,7 +79,6 @@ ORDER BY TotalDeathCount DESC;
 
 
 -- BREAKING THINGS DOWN BY CONTINENT
-
 -- Showing contintents with the highest death count per population
 
 SELECT 
@@ -88,9 +91,11 @@ WHERE
 GROUP BY continent
 ORDER BY TotalDeathCount DESC;
 
--- GLOBAL NUMBERS --
 
+
+-- GLOBAL NUMBERS --
 -- DAILY PERCENTAGE
+
 SELECT
 	date,
     SUM(new_cases) AS TotalCases,
@@ -103,7 +108,10 @@ WHERE
 GROUP BY date
 ORDER BY CAST(date AS date);
 
+
+
 -- OVERALL GLOBAL PERCENTAGE
+
 SELECT
     SUM(new_cases) AS TotalCases,
     SUM(CAST(new_deaths AS UNSIGNED)) AS NewDeaths,
@@ -114,6 +122,8 @@ WHERE
     continent IS NOT NULL
 ORDER BY CAST(date AS date);
 
+
+
 -- JOIN --
 
 SELECT 
@@ -123,64 +133,68 @@ FROM
         JOIN
     CovidVaccinations vac ON dea.location = vac.location
         AND dea.date = vac.date;
+	
+	
 
 -- Looking at total population vs vaccination
 -- How many people in the world have ben vaccinated
 
-Select 
+SELECT
 	dea.continent, 
 	dea.location, 
-    dea.date, 
-    dea.population, 
-    vac.new_vaccinations,
-    SUM(CONVERT(vac.new_vaccinations, UNSIGNED)) OVER (Partition by dea.Location Order by dea.location, dea.Date)
-From CovidDeaths_ dea
-Join CovidVaccinations vac
-	On dea.location = vac.location
-	and dea.date = vac.date
-where dea.continent is not null AND dea.location = 'United States'
-order by 2,3;
+    	dea.date, 
+    	dea.population, 
+    	vac.new_vaccinations,
+    	SUM(CONVERT(vac.new_vaccinations, UNSIGNED)) OVER (Partition by dea.Location Order by dea.location, dea.Date)
+FROM CovidDeaths_ dea
+JOIN CovidVaccinations vac
+	ON dea.location = vac.location
+	AND dea.date = vac.date
+WHERE dea.continent IS NOT null AND dea.location = 'United States'
+ORDER BY 2,3;
+
+
 
 -- USING CTE
 
-WITH PopvsVac (continent, location, date, population, new_vaccinations, RollingPeopleVaccinated)
-as
+WITH PopvsVac (continent, location, date, population, new_vaccinations, RollingPeopleVaccinated) AS
 (
-Select 
+SELECT
 	dea.continent, 
 	dea.location, 
-    dea.date, 
-    dea.population, 
-    vac.new_vaccinations,
-	SUM(CONVERT(vac.new_vaccinations, unsigned)) OVER (Partition by dea.Location Order by dea.location, dea.Date) as RollingPeopleVaccinated
--- (RollingPeopleVaccinated/population)*100
-From CovidDeaths_ dea
-Join CovidVaccinations vac
-	On dea.location = vac.location
-	and dea.date = vac.date
-where dea.continent is not null AND dea.location = 'United States'
--- order by 2,3
+    	dea.date, 
+    	dea.population, 
+   	vac.new_vaccinations,
+	SUM(CONVERT(vac.new_vaccinations, unsigned)) OVER (Partition BY dea.Location ORDER BY dea.location, dea.Date) AS RollingPeopleVaccinated
+-- 	(RollingPeopleVaccinated/population)*100
+FROM CovidDeaths_ dea
+JOIN CovidVaccinations vac
+	ON dea.location = vac.location
+	AND dea.date = vac.date
+WHERE dea.continent IS NOT null AND dea.location = 'United States'
+-- order by 2,3	
 )
-SELECT 
-	*,
+SELECT *,
     (RollingPeopleVaccinated / Population)
 FROM PopvsVac;
+
+
 
 -- CREEATING VIEWS TO STORE DATA FOR LATER VISUALIZATION
 
 CREATE VIEW PercentPopulationPopulated AS
-Select 
+SELECT
 	dea.continent, 
 	dea.location, 
-    dea.date, 
-    dea.population, 
-    vac.new_vaccinations,
+    	dea.date, 
+    	dea.population, 
+   	vac.new_vaccinations,
 	SUM(CONVERT(vac.new_vaccinations, unsigned)) OVER (Partition by dea.Location Order by dea.location, dea.Date) as RollingPeopleVaccinated
 -- (RollingPeopleVaccinated/population)*100
-From CovidDeaths_ dea
-Join CovidVaccinations vac
-	On dea.location = vac.location
-	and dea.date = vac.date
-where dea.continent is not null
+FROM CovidDeaths_ dea
+JOIN CovidVaccinations vac
+	ON dea.location = vac.location
+	AND dea.date = vac.date
+WHERE dea.continent IS NOT null
 
 
